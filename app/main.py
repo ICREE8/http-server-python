@@ -3,6 +3,8 @@ import socket
 import threading
 import os
 import sys
+import gzip
+import io
 
 
 def handle_client(client_socket, base_directory):
@@ -33,15 +35,24 @@ def handle_client(client_socket, base_directory):
                 response = "HTTP/1.1 200 OK\r\n\r\n"
             elif path.startswith("/echo/"):
                 echo_str = path[len("/echo/"):]
-                response_body = echo_str
-                response_headers = (
-                    "HTTP/1.1 200 OK\r\n"
-                    "Content-Type: text/plain\r\n"
-                    f"Content-Length: {len(response_body)}\r\n"
-                )
+                response_body = echo_str.encode('utf-8')
                 if "gzip" in accept_encoding:
-                    response_headers += "Content-Encoding: gzip\r\n"
-                response = response_headers + "\r\n" + response_body
+                    response_body = gzip.compress(response_body)
+                    response_headers = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Content-Encoding: gzip\r\n"
+                        f"Content-Length: {len(response_body)}\r\n"
+                        "\r\n"
+                    )
+                else:
+                    response_headers = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/plain\r\n"
+                        f"Content-Length: {len(response_body)}\r\n"
+                        "\r\n"
+                    )
+                response = response_headers.encode('utf-8') + response_body
             elif path == "/user-agent":
                 # Extract the User-Agent header
                 user_agent = ""
@@ -50,15 +61,24 @@ def handle_client(client_socket, base_directory):
                         user_agent = header.split("User-Agent: ")[1]
                         break
 
-                response_body = user_agent
-                response_headers = (
-                    "HTTP/1.1 200 OK\r\n"
-                    "Content-Type: text/plain\r\n"
-                    f"Content-Length: {len(response_body)}\r\n"
-                )
+                response_body = user_agent.encode('utf-8')
                 if "gzip" in accept_encoding:
-                    response_headers += "Content-Encoding: gzip\r\n"
-                response = response_headers + "\r\n" + response_body
+                    response_body = gzip.compress(response_body)
+                    response_headers = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Content-Encoding: gzip\r\n"
+                        f"Content-Length: {len(response_body)}\r\n"
+                        "\r\n"
+                    )
+                else:
+                    response_headers = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/plain\r\n"
+                        f"Content-Length: {len(response_body)}\r\n"
+                        "\r\n"
+                    )
+                response = response_headers.encode('utf-8') + response_body
             elif path.startswith("/files/"):
                 filename = path[len("/files/"):]
                 file_path = os.path.join(base_directory, filename)
@@ -66,18 +86,27 @@ def handle_client(client_socket, base_directory):
                     with open(file_path, 'rb') as f:
                         file_content = f.read()
                     response_body = file_content
-                    response_headers = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: application/octet-stream\r\n"
-                        f"Content-Length: {len(response_body)}\r\n"
-                    )
                     if "gzip" in accept_encoding:
-                        response_headers += "Content-Encoding: gzip\r\n"
-                    response = response_headers.encode('utf-8') + b"\r\n" + response_body
+                        response_body = gzip.compress(response_body)
+                        response_headers = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Type: application/octet-stream\r\n"
+                            "Content-Encoding: gzip\r\n"
+                            f"Content-Length: {len(response_body)}\r\n"
+                            "\r\n"
+                        )
+                    else:
+                        response_headers = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Type: application/octet-stream\r\n"
+                            f"Content-Length: {len(response_body)}\r\n"
+                            "\r\n"
+                        )
+                    response = response_headers.encode('utf-8') + response_body
                 else:
-                    response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                    response = "HTTP/1.1 404 Not Found\r\n\r\n".encode('utf-8')
             else:
-                response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                response = "HTTP/1.1 404 Not Found\r\n\r\n".encode('utf-8')
         elif method == "POST" and path.startswith("/files/"):
             filename = path[len("/files/"):]
             file_path = os.path.join(base_directory, filename)
@@ -98,12 +127,12 @@ def handle_client(client_socket, base_directory):
             with open(file_path, 'wb') as f:
                 f.write(body.encode('utf-8'))
 
-            response = "HTTP/1.1 201 Created\r\n\r\n"
+            response = "HTTP/1.1 201 Created\r\n\r\n".encode('utf-8')
         else:
-            response = "HTTP/1.1 404 Not Found\r\n\r\n"
+            response = "HTTP/1.1 404 Not Found\r\n\r\n".encode('utf-8')
 
         # Send the response
-        client_socket.sendall(response if isinstance(response, bytes) else response.encode('utf-8'))
+        client_socket.sendall(response)
         print("Response sent")
     except Exception as e:
         print(f"Error handling request: {e}")
