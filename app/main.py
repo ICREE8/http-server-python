@@ -19,51 +19,75 @@ def handle_client(client_socket, base_directory):
         method, path, http_version = request_line.split()
         print(f"Method: {method}, Path: {path}, HTTP Version: {http_version}")
 
-        # Determine the response based on the path
-        if path == "/":
-            response = "HTTP/1.1 200 OK\r\n\r\n"
-        elif path.startswith("/echo/"):
-            echo_str = path[len("/echo/"):]
-            response_body = echo_str
-            response = (
-                "HTTP/1.1 200 OK\r\n"
-                f"Content-Type: text/plain\r\n"
-                f"Content-Length: {len(response_body)}\r\n"
-                "\r\n"
-                f"{response_body}"
-            )
-        elif path == "/user-agent":
-            # Extract the User-Agent header
-            headers = request.split('\r\n')[1:]
-            user_agent = ""
-            for header in headers:
-                if header.startswith("User-Agent:"):
-                    user_agent = header.split("User-Agent: ")[1]
-                    break
-
-            response_body = user_agent
-            response = (
-                "HTTP/1.1 200 OK\r\n"
-                f"Content-Type: text/plain\r\n"
-                f"Content-Length: {len(response_body)}\r\n"
-                "\r\n"
-                f"{response_body}"
-            )
-        elif path.startswith("/files/"):
-            filename = path[len("/files/"):]
-            file_path = os.path.join(base_directory, filename)
-            if os.path.exists(file_path) and os.path.isfile(file_path):
-                with open(file_path, 'rb') as f:
-                    file_content = f.read()
-                response_body = file_content
+        # Determine the response based on the path and method
+        if method == "GET":
+            if path == "/":
+                response = "HTTP/1.1 200 OK\r\n\r\n"
+            elif path.startswith("/echo/"):
+                echo_str = path[len("/echo/"):]
+                response_body = echo_str
                 response = (
                     "HTTP/1.1 200 OK\r\n"
-                    "Content-Type: application/octet-stream\r\n"
+                    f"Content-Type: text/plain\r\n"
                     f"Content-Length: {len(response_body)}\r\n"
                     "\r\n"
-                ).encode('utf-8') + response_body
+                    f"{response_body}"
+                )
+            elif path == "/user-agent":
+                # Extract the User-Agent header
+                headers = request.split('\r\n')[1:]
+                user_agent = ""
+                for header in headers:
+                    if header.startswith("User-Agent:"):
+                        user_agent = header.split("User-Agent: ")[1]
+                        break
+
+                response_body = user_agent
+                response = (
+                    "HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(response_body)}\r\n"
+                    "\r\n"
+                    f"{response_body}"
+                )
+            elif path.startswith("/files/"):
+                filename = path[len("/files/"):]
+                file_path = os.path.join(base_directory, filename)
+                if os.path.exists(file_path) and os.path.isfile(file_path):
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                    response_body = file_content
+                    response = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: application/octet-stream\r\n"
+                        f"Content-Length: {len(response_body)}\r\n"
+                        "\r\n"
+                    ).encode('utf-8') + response_body
+                else:
+                    response = "HTTP/1.1 404 Not Found\r\n\r\n"
             else:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"
+        elif method == "POST" and path.startswith("/files/"):
+            filename = path[len("/files/"):]
+            file_path = os.path.join(base_directory, filename)
+
+            # Extract the headers and request body
+            headers, body = request.split('\r\n\r\n', 1)
+            content_length = 0
+            for header in headers.split('\r\n')[1:]:
+                if header.startswith("Content-Length:"):
+                    content_length = int(header.split("Content-Length: ")[1])
+                    break
+
+            # Read the remaining body if not fully received
+            while len(body) < content_length:
+                body += client_socket.recv(1024).decode('utf-8')
+
+            # Write the body to the file
+            with open(file_path, 'wb') as f:
+                f.write(body.encode('utf-8'))
+
+            response = "HTTP/1.1 201 Created\r\n\r\n"
         else:
             response = "HTTP/1.1 404 Not Found\r\n\r\n"
 
