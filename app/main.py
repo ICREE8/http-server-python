@@ -1,4 +1,4 @@
-import socket  # Add this import statement
+import socket
 
 
 def main():
@@ -32,6 +32,23 @@ def main():
             elif path.startswith("/echo/"):
                 echo_str = path[len("/echo/"):]
                 response_body = echo_str
+                response = (
+                    "HTTP/1.1 200 OK\r\n"
+                    f"Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(response_body)}\r\n"
+                    "\r\n"
+                    f"{response_body}"
+                )
+            elif path == "/user-agent":
+                # Extract the User-Agent header
+                headers = request.split('\r\n')[1:]
+                user_agent = ""
+                for header in headers:
+                    if header.startswith("User-Agent:"):
+                        user_agent = header.split("User-Agent: ")[1]
+                        break
+
+                response_body = user_agent
                 response = (
                     "HTTP/1.1 200 OK\r\n"
                     f"Content-Type: text/plain\r\n"
