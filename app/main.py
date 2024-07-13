@@ -32,7 +32,7 @@ def handle_client(client_socket, base_directory):
         # Determine the response based on the path and method
         if method == "GET":
             if path == "/":
-                response = "HTTP/1.1 200 OK\r\n\r\n"
+                response = "HTTP/1.1 200 OK\r\n\r\n".encode('utf-8')
             elif path.startswith("/echo/"):
                 echo_str = path[len("/echo/"):]
                 response_body = echo_str.encode('utf-8')
@@ -44,15 +44,15 @@ def handle_client(client_socket, base_directory):
                         "Content-Encoding: gzip\r\n"
                         f"Content-Length: {len(response_body)}\r\n"
                         "\r\n"
-                    )
+                    ).encode('utf-8')
                 else:
                     response_headers = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/plain\r\n"
                         f"Content-Length: {len(response_body)}\r\n"
                         "\r\n"
-                    )
-                response = response_headers.encode('utf-8') + response_body
+                    ).encode('utf-8')
+                response = response_headers + response_body
             elif path == "/user-agent":
                 # Extract the User-Agent header
                 user_agent = ""
@@ -70,15 +70,15 @@ def handle_client(client_socket, base_directory):
                         "Content-Encoding: gzip\r\n"
                         f"Content-Length: {len(response_body)}\r\n"
                         "\r\n"
-                    )
+                    ).encode('utf-8')
                 else:
                     response_headers = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/plain\r\n"
                         f"Content-Length: {len(response_body)}\r\n"
                         "\r\n"
-                    )
-                response = response_headers.encode('utf-8') + response_body
+                    ).encode('utf-8')
+                response = response_headers + response_body
             elif path.startswith("/files/"):
                 filename = path[len("/files/"):]
                 file_path = os.path.join(base_directory, filename)
@@ -94,15 +94,15 @@ def handle_client(client_socket, base_directory):
                             "Content-Encoding: gzip\r\n"
                             f"Content-Length: {len(response_body)}\r\n"
                             "\r\n"
-                        )
+                        ).encode('utf-8')
                     else:
                         response_headers = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Type: application/octet-stream\r\n"
                             f"Content-Length: {len(response_body)}\r\n"
                             "\r\n"
-                        )
-                    response = response_headers.encode('utf-8') + response_body
+                        ).encode('utf-8')
+                    response = response_headers + response_body
                 else:
                     response = "HTTP/1.1 404 Not Found\r\n\r\n".encode('utf-8')
             else:
