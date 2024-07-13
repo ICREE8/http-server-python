@@ -1,9 +1,11 @@
 
 import socket
 import threading
+import os
+import sys
 
 
-def handle_client(client_socket):
+def handle_client(client_socket, base_directory):
     try:
         # Receive the request
         request = client_socket.recv(1024).decode('utf-8')
@@ -47,11 +49,26 @@ def handle_client(client_socket):
                 "\r\n"
                 f"{response_body}"
             )
+        elif path.startswith("/files/"):
+            filename = path[len("/files/"):]
+            file_path = os.path.join(base_directory, filename)
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                with open(file_path, 'rb') as f:
+                    file_content = f.read()
+                response_body = file_content
+                response = (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: application/octet-stream\r\n"
+                    f"Content-Length: {len(response_body)}\r\n"
+                    "\r\n"
+                ).encode('utf-8') + response_body
+            else:
+                response = "HTTP/1.1 404 Not Found\r\n\r\n"
         else:
             response = "HTTP/1.1 404 Not Found\r\n\r\n"
 
         # Send the response
-        client_socket.sendall(response.encode('utf-8'))
+        client_socket.sendall(response if isinstance(response, bytes) else response.encode('utf-8'))
         print("Response sent")
     except Exception as e:
         print(f"Error handling request: {e}")
@@ -69,6 +86,13 @@ def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
+    # Parse command line arguments
+    if len(sys.argv) != 3 or sys.argv[1] != "--directory":
+        print("Usage: ./your_server.sh --directory <path>")
+        sys.exit(1)
+
+    base_directory = sys.argv[2]
+
     # Create server socket
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     print("Server is listening on port 4221")
@@ -78,7 +102,7 @@ def main():
         print(f"Connection from {client_address}")
 
         # Handle the client connection in a new thread
-        client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+        client_thread = threading.Thread(target=handle_client, args=(client_socket, base_directory))
         client_thread.start()
 
 
