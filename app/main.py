@@ -87,11 +87,10 @@ def main():
     print("Logs from your program will appear here!")
 
     # Parse command line arguments
-    if len(sys.argv) != 3 or sys.argv[1] != "--directory":
-        print("Usage: ./your_server.sh --directory <path>")
-        sys.exit(1)
-
-    base_directory = sys.argv[2]
+    if len(sys.argv) == 3 and sys.argv[1] == "--directory":
+        base_directory = sys.argv[2]
+    else:
+        base_directory = "/tmp"  # Default directory
 
     # Create server socket
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
